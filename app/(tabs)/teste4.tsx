@@ -13,15 +13,23 @@ export default function EditDeleteProductsScreen() {
   const [image, setImage] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
 
-  // Função para buscar produtos com quantidade 1
+  // Função para buscar e ordenar produtos por data e quantidade
   const fetchProducts = async () => {
     try {
       const response = await axios.get('http://192.168.0.110:3000/produtos');
-      // Filtra produtos com quantidade 1 e ordena pela data de inserção
-      const filteredProducts = response.data
-        .filter((product) => product.quantity === 1)
-        .sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded)); // Ordenação pela data
-      setProducts(filteredProducts);
+      
+      // Ordena por data (decrescente) e, dentro dos mesmos produtos com a mesma data, ordena por quantidade (crescente)
+      const sortedProducts = response.data
+        .filter((product) => product.quantity) // Filtra produtos com quantidade
+        .sort((a, b) => {
+          if (new Date(b.dateAdded) !== new Date(a.dateAdded)) {
+            return new Date(b.dateAdded) - new Date(a.dateAdded); // Ordena por data (decrescente)
+          } else {
+            return a.quantity - b.quantity; // Ordena por quantidade (crescente)
+          }
+        });
+      
+      setProducts(sortedProducts);
     } catch (error) {
       console.error('Erro ao buscar produtos:', error);
     } finally {
@@ -51,7 +59,7 @@ export default function EditDeleteProductsScreen() {
       const formData = new FormData();
       formData.append('name', name);
       formData.append('description', description);
-      formData.append('quantity', 1); // Quantidade fixada como 1
+      formData.append('quantity', 2); // Quantidade fixada em 2
 
       if (image) {
         const filename = image.split('/').pop();
@@ -109,7 +117,6 @@ export default function EditDeleteProductsScreen() {
       <ThemedText>{item.name}</ThemedText>
       <ThemedText>Quantidade: {item.quantity}</ThemedText>
       <ThemedText style={styles.dateAdded}>Adicionado em: {formatDate(item.dateAdded)}</ThemedText>
-      <ThemedText>{item.description}</ThemedText> {/* Descrição agora visível */}
       <View style={styles.actionsContainer}>
         <Button title="Editar" onPress={() => { setName(item.name); setDescription(item.description); setSelectedProductId(item._id); }} />
         <Button title="Excluir" onPress={() => handleDelete(item._id)} color="red" />
@@ -127,24 +134,25 @@ export default function EditDeleteProductsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title" style={styles.title}>Gerenciar Produtos (Quantidade 1)</ThemedText>
+      <ThemedText type="title" style={styles.title}>Gerenciar Produtos (Quantidade 2)</ThemedText>
 
       <View style={styles.formContainer}>
         <TextInput
           style={styles.input}
           placeholder="Nome"
-          placeholderTextColor="#fff"  // Aumentei o contraste
+          placeholderTextColor="#333"
           value={name}
           onChangeText={setName}
         />
         <TextInput
           style={styles.input}
           placeholder="Descrição"
-          placeholderTextColor="#888"
+          placeholderTextColor="#333"
           value={description}
           onChangeText={setDescription}
         />
-        {/* Campo de Quantidade foi removido, pois é fixo em 1 */}
+        
+        {/* O campo "Quantidade" não será exibido mais */}
         
         <TouchableOpacity style={styles.imagePicker} onPress={handlePickImage}>
           <ThemedText style={styles.imagePickerText}>{image ? 'Imagem Selecionada' : 'Selecionar Imagem'}</ThemedText>
@@ -196,8 +204,8 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     padding: 10,
     borderRadius: 8,
-    backgroundColor: '#333', // Mais contraste para o campo Nome
-    color: '#fff',  // Cor do texto também aumentada
+    backgroundColor: '#f7f7f7',
+    color: '#333',  // Maior contraste para o campo Nome
   },
   imagePicker: {
     backgroundColor: '#e0e0e0',
