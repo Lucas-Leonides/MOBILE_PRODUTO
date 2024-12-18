@@ -54,6 +54,18 @@ export default function EditDeleteProductsScreen() {
     }
   };
 
+  const handleTakePhoto = async () => {
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       const formData = new FormData();
@@ -114,9 +126,9 @@ export default function EditDeleteProductsScreen() {
   const renderProduct = ({ item }) => (
     <View style={styles.productContainer}>
       <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
-      <ThemedText>{item.name}</ThemedText>
-      <ThemedText>Quantidade: {item.quantity}</ThemedText>
-      <ThemedText style={styles.dateAdded}>Adicionado em: {formatDate(item.dateAdded)}</ThemedText>
+      <ThemedText style={styles.productName}>{item.name}</ThemedText>
+      <ThemedText style={styles.productQuantity}>Quantidade: {item.quantity}</ThemedText>
+      <ThemedText style={styles.productDate}>Adicionado em: {formatDate(item.dateAdded)}</ThemedText>
       <View style={styles.actionsContainer}>
         <Button title="Editar" onPress={() => { setName(item.name); setDescription(item.description); setSelectedProductId(item._id); }} />
         <Button title="Excluir" onPress={() => handleDelete(item._id)} color="red" />
@@ -157,10 +169,17 @@ export default function EditDeleteProductsScreen() {
         <TouchableOpacity style={styles.imagePicker} onPress={handlePickImage}>
           <ThemedText style={styles.imagePickerText}>{image ? 'Imagem Selecionada' : 'Selecionar Imagem'}</ThemedText>
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.imagePicker} onPress={handleTakePhoto}>
+          <ThemedText style={styles.imagePickerText}>Tirar Foto</ThemedText>
+        </TouchableOpacity>
         
         {image && <Image source={{ uri: image }} style={styles.imagePreview} />}
         
         <Button title={selectedProductId ? 'Atualizar Produto' : 'Adicionar Produto'} onPress={handleSubmit} color="#683ba8" />
+
+        {/* Botão de Atualização da Página */}
+        <Button title="Atualizar Página" onPress={fetchProducts} color="#4caf50" />
       </View>
 
       <FlatList
@@ -205,7 +224,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     backgroundColor: '#f7f7f7',
-    color: '#333',  // Maior contraste para o campo Nome
+    color: '#333',
   },
   imagePicker: {
     backgroundColor: '#e0e0e0',
@@ -243,18 +262,26 @@ const styles = StyleSheet.create({
   productImage: {
     width: 100,
     height: 100,
-    marginBottom: 10,
     borderRadius: 8,
+    marginBottom: 10,
   },
-  dateAdded: {
-    marginTop: 5,
+  productName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  productQuantity: {
+    fontSize: 14,
+    color: '#666',
+  },
+  productDate: {
     fontSize: 12,
     color: '#888',
   },
   actionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
     marginTop: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
   },
 });

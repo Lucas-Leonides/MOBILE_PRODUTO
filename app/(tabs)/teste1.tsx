@@ -1,32 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, Button, View, TextInput, TouchableOpacity, FlatList } from 'react-native';
+import { Image, StyleSheet, Button, View, TextInput, TouchableOpacity } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 export default function Teste1Screen() {
-  const [products, setProducts] = useState([]);
+  const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [quantity, setQuantity] = useState('');
   const [image, setImage] = useState(null);
-  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchProducts = async () => {
+  const fetchLatestProduct = async () => {
     try {
       const response = await axios.get('http://192.168.0.110:3000/produtos');
-      setProducts(response.data);
+      if (response.data.length > 0) {
+        setProduct(response.data[response.data.length - 1]);
+      } else {
+        setProduct(null);
+      }
     } catch (error) {
-      console.error('Erro ao buscar produtos:', error);
+      console.error('Erro ao buscar produto:', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchLatestProduct();
   }, []);
 
   const handlePickImageFromGallery = async () => {
@@ -69,6 +73,9 @@ export default function Teste1Screen() {
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
     try {
       const formData = new FormData();
 
@@ -86,20 +93,43 @@ export default function Teste1Screen() {
         });
       }
 
-      if (selectedProductId) {
-        await axios.put(`http://192.168.0.110:3000/produtos/${selectedProductId}`, formData, {
+      if (product?._id) {
+        await axios.put(`http://192.168.0.110:3000/produtos/${product._id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       } else {
-        await axios.post('http://192.168.0.110:3000/produtos', formData, {
+        const response = await axios.post('http://192.168.0.110:3000/produtos', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
+        setProduct(response.data);
       }
 
       resetForm();
-      fetchProducts();
+      fetchLatestProduct();
     } catch (error) {
       console.error('Erro ao enviar dados do produto:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEdit = () => {
+    if (product) {
+      setName(product.name);
+      setDescription(product.description);
+      setQuantity(product.quantity.toString());
+      setImage(product.imageUrl);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      if (product?._id) {
+        await axios.delete(`http://192.168.0.110:3000/produtos/${product._id}`);
+        setProduct(null);
+      }
+    } catch (error) {
+      console.error('Erro ao excluir produto:', error);
     }
   };
 
@@ -108,22 +138,7 @@ export default function Teste1Screen() {
     setDescription('');
     setQuantity('');
     setImage(null);
-    setSelectedProductId(null);
   };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} ${date.getHours()}:${date.getMinutes()}`;
-  };
-
-  const renderProduct = ({ item }) => (
-    <View style={styles.productContainer}>
-      <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
-      <ThemedText>{item.name}</ThemedText>
-      <ThemedText>Quantidade: {item.quantity}</ThemedText>
-      <ThemedText style={styles.dateAdded}>Adicionado em: {formatDate(item.dateAdded)}</ThemedText>
-    </View>
-  );
 
   if (loading) {
     return (
@@ -135,7 +150,9 @@ export default function Teste1Screen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title" style={styles.title}>Gerenciar Produtos</ThemedText>
+      <ThemedText type="title" style={styles.title}>
+        Gerenciar Produto
+      </ThemedText>
 
       <View style={styles.formContainer}>
         <TextInput
@@ -160,28 +177,40 @@ export default function Teste1Screen() {
           onChangeText={setQuantity}
           keyboardType="numeric"
         />
-        
+
         <View style={styles.imagePickerContainer}>
           <TouchableOpacity style={styles.imagePicker} onPress={handlePickImageFromGallery}>
             <ThemedText style={styles.imagePickerText}>Selecionar Imagem da Galeria</ThemedText>
           </TouchableOpacity>
-
           <TouchableOpacity style={styles.imagePicker} onPress={handlePickImageFromCamera}>
             <ThemedText style={styles.imagePickerText}>Tirar Foto com a Câmera</ThemedText>
           </TouchableOpacity>
         </View>
-        
+
         {image && <Image source={{ uri: image }} style={styles.imagePreview} />}
-        
-        <Button title={selectedProductId ? 'Atualizar Produto' : 'Adicionar Produto'} onPress={handleSubmit} color="#683ba8" />
+
+        <Button
+          title={isSubmitting ? 'Enviando...' : 'Enviar'}
+          onPress={handleSubmit}
+          color="#477ed1"
+          disabled={isSubmitting}
+        />
       </View>
 
-      <FlatList
-        data={products}
-        keyExtractor={(item) => item._id}
-        renderItem={renderProduct}
-        style={styles.list}
-      />
+      {product && (
+        <View style={styles.productContainer}>
+          <Image source={{ uri: product.imageUrl }} style={styles.productImage} />
+          <View style={styles.productInfo}>
+            <ThemedText style={styles.productName}>{product.name}</ThemedText>
+            <ThemedText style={styles.productDescription}>{product.description}</ThemedText>
+            <ThemedText style={styles.productQuantity}>Quantidade: {product.quantity}</ThemedText>
+          </View>
+          <View style={styles.buttonRow}>
+            <Button title="Editar" onPress={handleEdit} color="#5bc0de" />
+            <Button title="Excluir" onPress={handleDelete} color="#d9534f" />
+          </View>
+        </View>
+      )}
     </ThemedView>
   );
 }
@@ -202,6 +231,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: '#333',
   },
   formContainer: {
     marginBottom: 20,
@@ -242,28 +272,42 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#ddd',
   },
-  list: {
-    marginTop: 20,
-  },
   productContainer: {
-    marginBottom: 20,
+    marginTop: 20,
     padding: 15,
-    borderBottomColor: '#ccc',
-    borderBottomWidth: 1,
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 8,
     elevation: 3,
   },
   productImage: {
-    width: 100,
-    height: 100,
-    marginBottom: 10,
+    width: 200,
+    height: 200,
+    marginBottom: 15,
     borderRadius: 8,
   },
-  dateAdded: {
-    marginTop: 5,
-    fontSize: 12,
+  productInfo: {
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  productName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  productDescription: {
+    fontSize: 16,
+    color: '#555',
+    marginBottom: 5,
+  },
+  productQuantity: {
+    fontSize: 14,
     color: '#888',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '45%',
+    marginTop: 10,
   },
 });

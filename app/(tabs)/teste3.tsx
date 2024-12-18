@@ -12,16 +12,15 @@ export default function EditDeleteProductsScreen() {
   const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showForm, setShowForm] = useState(false); // Novo estado para controlar a exibição do formulário
 
-  // Função para buscar produtos com quantidade 2 e ordenar por data
   const fetchProducts = async () => {
     try {
       const response = await axios.get('http://192.168.0.110:3000/produtos');
-      const filteredProducts = response.data.filter((product) => product.quantity === 2);
-      
-      // Ordenar os produtos pela data (decrescente)
-      filteredProducts.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
-      
+      const filteredProducts = response.data
+        .filter((product) => product.quantity === 2)
+        .sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
       setProducts(filteredProducts);
     } catch (error) {
       console.error('Erro ao buscar produtos:', error);
@@ -47,7 +46,20 @@ export default function EditDeleteProductsScreen() {
     }
   };
 
+  const handleTakePhoto = async () => {
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
+
   const handleSubmit = async () => {
+    setIsSubmitting(true);
     try {
       const formData = new FormData();
       formData.append('name', name);
@@ -80,6 +92,8 @@ export default function EditDeleteProductsScreen() {
       fetchProducts();
     } catch (error) {
       console.error('Erro ao enviar dados do produto:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -99,6 +113,10 @@ export default function EditDeleteProductsScreen() {
     }
   };
 
+  const handleRefresh = () => {
+    fetchProducts();
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} ${date.getHours()}:${date.getMinutes()}`;
@@ -107,11 +125,12 @@ export default function EditDeleteProductsScreen() {
   const renderProduct = ({ item }) => (
     <View style={styles.productContainer}>
       <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
-      <ThemedText>{item.name}</ThemedText>
-      <ThemedText>Quantidade: {item.quantity}</ThemedText>
-      <ThemedText style={styles.dateAdded}>Adicionado em: {formatDate(item.dateAdded)}</ThemedText>
+      <ThemedText style={styles.productName}>{item.name}</ThemedText>
+      <ThemedText style={styles.productQuantity}>Quantidade: {item.quantity}</ThemedText>
+      <ThemedText style={styles.productDate}>Adicionado em: {formatDate(item.dateAdded)}</ThemedText>
+      <ThemedText style={styles.productDescription}>{item.description}</ThemedText>
       <View style={styles.actionsContainer}>
-        <Button title="Editar" onPress={() => { setName(item.name); setDescription(item.description); setSelectedProductId(item._id); }} />
+        <Button title="Editar" onPress={() => { setName(item.name); setDescription(item.description); setSelectedProductId(item._id); setShowForm(true); }} />
         <Button title="Excluir" onPress={() => handleDelete(item._id)} color="red" />
       </View>
     </View>
@@ -129,32 +148,46 @@ export default function EditDeleteProductsScreen() {
     <ThemedView style={styles.container}>
       <ThemedText type="title" style={styles.title}>Gerenciar Produtos (Quantidade 2)</ThemedText>
 
-      <View style={styles.formContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Nome"
-          placeholderTextColor="#333"
-          value={name}
-          onChangeText={setName}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Descrição"
-          placeholderTextColor="#333"
-          value={description}
-          onChangeText={setDescription}
-        />
-        
-        {/* O campo "Quantidade" não será exibido mais */}
-        
-        <TouchableOpacity style={styles.imagePicker} onPress={handlePickImage}>
-          <ThemedText style={styles.imagePickerText}>{image ? 'Imagem Selecionada' : 'Selecionar Imagem'}</ThemedText>
-        </TouchableOpacity>
-        
-        {image && <Image source={{ uri: image }} style={styles.imagePreview} />}
-        
-        <Button title={selectedProductId ? 'Atualizar Produto' : 'Adicionar Produto'} onPress={handleSubmit} color="#683ba8" />
+      <View style={styles.buttonContainer}>
+        <Button title="Atualizar Lista" onPress={handleRefresh} color="#477ed1" />
+        <View style={styles.spacer} />
+        <Button title={showForm ? "Fechar Formulário" : "Adicionar Novo Produto"} onPress={() => setShowForm(!showForm)} color="#683ba8" />
       </View>
+
+      {showForm && (
+        <View style={styles.formContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Nome"
+            placeholderTextColor="#888"
+            value={name}
+            onChangeText={setName}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Descrição"
+            placeholderTextColor="#888"
+            value={description}
+            onChangeText={setDescription}
+          />
+          <TouchableOpacity style={styles.imagePicker} onPress={handlePickImage}>
+            <ThemedText style={styles.imagePickerText}>{image ? 'Imagem Selecionada' : 'Selecionar Imagem da Galeria'}</ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.imagePicker} onPress={handleTakePhoto}>
+            <ThemedText style={styles.imagePickerText}>{image ? 'Imagem da Câmera Selecionada' : 'Tirar Foto com a Câmera'}</ThemedText>
+          </TouchableOpacity>
+
+          {image && <Image source={{ uri: image }} style={styles.imagePreview} />}
+
+          <Button
+            title={selectedProductId ? 'Atualizar Produto' : 'Adicionar Produto'}
+            onPress={handleSubmit}
+            color="#683ba8"
+            disabled={isSubmitting}
+          />
+        </View>
+      )}
 
       <FlatList
         data={products}
@@ -167,6 +200,13 @@ export default function EditDeleteProductsScreen() {
 }
 
 const styles = StyleSheet.create({
+  buttonContainer: {
+    marginBottom: 20, // Espaçamento entre a parte superior e os botões
+  },
+  spacer: {
+    height: 10, // Ajuste o tamanho do espaçamento conforme necessário
+  },
+  
   container: {
     padding: 20,
     flex: 1,
@@ -197,8 +237,8 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     padding: 10,
     borderRadius: 8,
-    backgroundColor: '#f7f7f7',
-    color: '#333',  // Maior contraste para o campo Nome
+    backgroundColor: '#fff',
+    color: '#000',
   },
   imagePicker: {
     backgroundColor: '#e0e0e0',
@@ -231,23 +271,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 8,
-    elevation: 3,
   },
   productImage: {
     width: 100,
     height: 100,
-    marginBottom: 10,
     borderRadius: 8,
+    marginBottom: 10,
   },
-  dateAdded: {
-    marginTop: 5,
-    fontSize: 12,
+  productName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  productQuantity: {
+    fontSize: 16,
     color: '#888',
+  },
+  productDate: {
+    fontSize: 14,
+    color: '#aaa',
+  },
+  productDescription: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 10,
   },
   actionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    marginTop: 10,
   },
 });
