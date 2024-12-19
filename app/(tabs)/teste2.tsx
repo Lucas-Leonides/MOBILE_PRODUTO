@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, Button, View, TextInput, TouchableOpacity, FlatList } from 'react-native';
+import { Image, StyleSheet, Button, View, TextInput, TouchableOpacity, FlatList, Modal } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import { ThemedText } from '@/components/ThemedText';
@@ -13,7 +13,9 @@ export default function EditDeleteProductsScreen() {
   const [image, setImage] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showForm, setShowForm] = useState(false); // Novo estado para controlar a exibição do formulário
+  const [showForm, setShowForm] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   const fetchProducts = async () => {
     try {
@@ -120,13 +122,19 @@ export default function EditDeleteProductsScreen() {
     return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} ${date.getHours()}:${date.getMinutes()}`;
   };
 
+  const handleImagePress = (product) => {
+    setSelectedProduct(product);
+    setIsModalVisible(true);
+  };
+
   const renderProduct = ({ item }) => (
     <View style={styles.productContainer}>
-      <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
+      <TouchableOpacity onPress={() => handleImagePress(item)}>
+        <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
+      </TouchableOpacity>
       <ThemedText style={styles.productName}>{item.name}</ThemedText>
       <ThemedText style={styles.productQuantity}>Quantidade: {item.quantity}</ThemedText>
       <ThemedText style={styles.productDate}>Adicionado em: {formatDate(item.dateAdded)}</ThemedText>
-      <ThemedText style={styles.productDescription}>{item.description}</ThemedText>
       <View style={styles.actionsContainer}>
         <Button title="Editar" onPress={() => { setName(item.name); setDescription(item.description); setSelectedProductId(item._id); setShowForm(true); }} />
         <Button title="Excluir" onPress={() => handleDelete(item._id)} color="red" />
@@ -147,10 +155,10 @@ export default function EditDeleteProductsScreen() {
       <ThemedText type="title" style={styles.title}>Gerenciar Produtos (Quantidade 1)</ThemedText>
 
       <View style={styles.buttonContainer}>
-  <Button title="Atualizar Página" onPress={handleRefresh} color="#477ed1" />
-  <View style={styles.spacer} />
-  <Button title={showForm ? "Fechar Formulário" : "Adicionar Novo Produto"} onPress={() => setShowForm(!showForm)} color="#683ba8" />
-</View>
+        <Button title="Atualizar Página" onPress={handleRefresh} color="#477ed1" />
+        <View style={styles.spacer} />
+        <Button title={showForm ? "Fechar Formulário" : "Adicionar Novo Produto"} onPress={() => setShowForm(!showForm)} color="#683ba8" />
+      </View>
 
       {showForm && (
         <View style={styles.formContainer}>
@@ -193,19 +201,37 @@ export default function EditDeleteProductsScreen() {
         renderItem={renderProduct}
         style={styles.list}
       />
+
+      {selectedProduct && (
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={isModalVisible}
+          onRequestClose={() => setIsModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Image source={{ uri: selectedProduct.imageUrl }} style={styles.modalImage} />
+              <ThemedText style={styles.modalText}>Nome: {selectedProduct.name}</ThemedText>
+              <ThemedText style={styles.modalText}>Descrição: {selectedProduct.description}</ThemedText>
+              <ThemedText style={styles.modalText}>Quantidade: {selectedProduct.quantity}</ThemedText>
+              <ThemedText style={styles.modalText}>Adicionado em: {formatDate(selectedProduct.dateAdded)}</ThemedText>
+              <Button title="Fechar" onPress={() => setIsModalVisible(false)} color="#683ba8" />
+            </View>
+          </View>
+        </Modal>
+      )}
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-
   buttonContainer: {
-    marginBottom: 20, // Espaçamento entre a parte superior e os botões
+    marginBottom: 20,
   },
   spacer: {
-    height: 10, // Ajuste o tamanho do espaçamento conforme necessário
+    height: 10,
   },
-  
   container: {
     padding: 20,
     flex: 1,
@@ -251,8 +277,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   imagePreview: {
-    width: 150,
-    height: 150,
+    width: 250,
+    height: 250,
     marginBottom: 20,
     alignSelf: 'center',
     borderRadius: 10,
@@ -273,8 +299,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   productImage: {
-    width: 100,
-    height: 100,
+    width: 250,
+    height: 250,
     marginBottom: 10,
     borderRadius: 8,
   },
@@ -292,15 +318,35 @@ const styles = StyleSheet.create({
     color: '#888',
     marginTop: 5,
   },
-  productDescription: {
-    fontSize: 16,
-    color: '#333',
-    marginTop: 10,
-  },
   actionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
     marginTop: 10,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    elevation: 10,
+    alignItems: 'center',
+  },
+  modalImage: {
+    width: 200,
+    height: 200,
+    marginBottom: 20,
+    borderRadius: 8,
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 10,
+    color: '#333',
   },
 });

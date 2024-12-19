@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, Button, View, TextInput, TouchableOpacity, FlatList } from 'react-native';
+import { Image, StyleSheet, Button, View, TextInput, TouchableOpacity, FlatList, Modal } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import { ThemedText } from '@/components/ThemedText';
@@ -12,23 +12,16 @@ export default function EditDeleteProductsScreen() {
   const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
-  // Função para buscar e ordenar produtos por data e quantidade
   const fetchProducts = async () => {
     try {
       const response = await axios.get('http://192.168.0.110:3000/produtos');
-      
-      // Ordena por data (decrescente) e, dentro dos mesmos produtos com a mesma data, ordena por quantidade (crescente)
       const sortedProducts = response.data
-        .filter((product) => product.quantity) // Filtra produtos com quantidade
-        .sort((a, b) => {
-          if (new Date(b.dateAdded) !== new Date(a.dateAdded)) {
-            return new Date(b.dateAdded) - new Date(a.dateAdded); // Ordena por data (decrescente)
-          } else {
-            return a.quantity - b.quantity; // Ordena por quantidade (crescente)
-          }
-        });
-      
+        .filter((product) => product.quantity)
+        .sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
       setProducts(sortedProducts);
     } catch (error) {
       console.error('Erro ao buscar produtos:', error);
@@ -71,7 +64,7 @@ export default function EditDeleteProductsScreen() {
       const formData = new FormData();
       formData.append('name', name);
       formData.append('description', description);
-      formData.append('quantity', 2); // Quantidade fixada em 2
+      formData.append('quantity', 2);
 
       if (image) {
         const filename = image.split('/').pop();
@@ -84,12 +77,10 @@ export default function EditDeleteProductsScreen() {
       }
 
       if (selectedProductId) {
-        // Atualizando um produto existente
         await axios.put(`http://192.168.0.110:3000/produtos/${selectedProductId}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       } else {
-        // Adicionando um novo produto
         await axios.post('http://192.168.0.110:3000/produtos', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
@@ -107,31 +98,45 @@ export default function EditDeleteProductsScreen() {
     setDescription('');
     setImage(null);
     setSelectedProductId(null);
+    setShowForm(false);
   };
 
   const handleDelete = async (id) => {
     try {
       await axios.delete(`http://192.168.0.110:3000/produtos/${id}`);
-      fetchProducts(); // Recarrega os produtos após a exclusão
+      fetchProducts();
     } catch (error) {
       console.error('Erro ao excluir produto:', error);
     }
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} ${date.getHours()}:${date.getMinutes()}`;
+  const handleImagePress = (product) => {
+    setSelectedProduct(product);
+    setModalVisible(true);
   };
 
   const renderProduct = ({ item }) => (
     <View style={styles.productContainer}>
-      <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
+      <TouchableOpacity onPress={() => handleImagePress(item)}>
+        <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
+      </TouchableOpacity>
       <ThemedText style={styles.productName}>{item.name}</ThemedText>
       <ThemedText style={styles.productQuantity}>Quantidade: {item.quantity}</ThemedText>
-      <ThemedText style={styles.productDate}>Adicionado em: {formatDate(item.dateAdded)}</ThemedText>
+      <ThemedText style={styles.productDate}>
+        Adicionado em: {new Date(item.dateAdded).toLocaleString()}
+      </ThemedText>
       <View style={styles.actionsContainer}>
-        <Button title="Editar" onPress={() => { setName(item.name); setDescription(item.description); setSelectedProductId(item._id); }} />
+        <Button
+          title="Editar"
+          onPress={() => {
+            setName(item.name);
+            setDescription(item.description);
+            setSelectedProductId(item._id);
+            setShowForm(true);
+          }}
+        />
         <Button title="Excluir" onPress={() => handleDelete(item._id)} color="red" />
+       
       </View>
     </View>
   );
@@ -146,41 +151,59 @@ export default function EditDeleteProductsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title" style={styles.title}>Gerenciar Produtos (Quantidade 2)</ThemedText>
+      <ThemedText type="title" style={styles.title}>
+        Gerenciar Produtos
+      </ThemedText>
 
-      <View style={styles.formContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Nome"
-          placeholderTextColor="#333"
-          value={name}
-          onChangeText={setName}
+      <View style={styles.headerButtons}>
+        <Button
+          title={showForm ? 'Fechar Formulário' : 'Adicionar Produto'}
+          onPress={() => setShowForm(!showForm)}
+          color="#477ed1"
         />
-        <TextInput
-          style={styles.input}
-          placeholder="Descrição"
-          placeholderTextColor="#333"
-          value={description}
-          onChangeText={setDescription}
+        <View style={styles.spacer} />
+        <Button
+          title="Atualizar Página"
+          onPress={fetchProducts}
+          color="#4CAF50"
         />
-        
-        {/* O campo "Quantidade" não será exibido mais */}
-        
-        <TouchableOpacity style={styles.imagePicker} onPress={handlePickImage}>
-          <ThemedText style={styles.imagePickerText}>{image ? 'Imagem Selecionada' : 'Selecionar Imagem'}</ThemedText>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.imagePicker} onPress={handleTakePhoto}>
-          <ThemedText style={styles.imagePickerText}>Tirar Foto</ThemedText>
-        </TouchableOpacity>
-        
-        {image && <Image source={{ uri: image }} style={styles.imagePreview} />}
-        
-        <Button title={selectedProductId ? 'Atualizar Produto' : 'Adicionar Produto'} onPress={handleSubmit} color="#683ba8" />
-
-        {/* Botão de Atualização da Página */}
-        <Button title="Atualizar Página" onPress={fetchProducts} color="#4caf50" />
       </View>
+
+      {showForm && (
+        <View style={styles.formContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Nome"
+            value={name}
+            onChangeText={setName}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Descrição"
+            value={description}
+            onChangeText={setDescription}
+          />
+          <TouchableOpacity style={styles.imagePicker} onPress={handlePickImage}>
+            <ThemedText style={styles.imagePickerText}>
+              {image ? 'Imagem Selecionada' : 'Selecionar Imagem da Galeria'}
+            </ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.imagePicker} onPress={handleTakePhoto}>
+            <ThemedText style={styles.imagePickerText}>
+              {image ? 'Imagem da Câmera Selecionada' : 'Tirar Foto com a Câmera'}
+            </ThemedText>
+          </TouchableOpacity>
+
+          {image && <Image source={{ uri: image }} style={styles.imagePreview} />}
+
+          <Button
+            title={selectedProductId ? 'Atualizar Produto' : 'Adicionar Produto'}
+            onPress={handleSubmit}
+            color="#683ba8"
+          />
+        </View>
+      )}
 
       <FlatList
         data={products}
@@ -188,11 +211,40 @@ export default function EditDeleteProductsScreen() {
         renderItem={renderProduct}
         style={styles.list}
       />
+
+      {selectedProduct && (
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Image source={{ uri: selectedProduct.imageUrl }} style={styles.modalImage} />
+              <ThemedText style={styles.modalText}>Nome: {selectedProduct.name}</ThemedText>
+              <ThemedText style={styles.modalText}>Descrição: {selectedProduct.description}</ThemedText>
+              <ThemedText style={styles.modalText}>Quantidade: {selectedProduct.quantity}</ThemedText>
+              <ThemedText style={styles.modalText}>
+                Adicionado em: {new Date(selectedProduct.dateAdded).toLocaleString()}
+              </ThemedText>
+              <Button title="Fechar" onPress={() => setModalVisible(false)} color="#683ba8" />
+            </View>
+          </View>
+        </Modal>
+      )}
     </ThemedView>
   );
 }
 
+
 const styles = StyleSheet.create({
+  buttonContainer: {
+    marginBottom: 20,
+  },
+  spacer: {
+    height: 10,
+  },
   container: {
     padding: 20,
     flex: 1,
@@ -223,8 +275,8 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     padding: 10,
     borderRadius: 8,
-    backgroundColor: '#f7f7f7',
-    color: '#333',
+    backgroundColor: '#fff',
+    color: '#000',
   },
   imagePicker: {
     backgroundColor: '#e0e0e0',
@@ -238,8 +290,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   imagePreview: {
-    width: 150,
-    height: 150,
+    width: 250,
+    height: 250,
     marginBottom: 20,
     alignSelf: 'center',
     borderRadius: 10,
@@ -260,10 +312,10 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   productImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
+    width: 250,
+    height: 250,
     marginBottom: 10,
+    borderRadius: 8,
   },
   productName: {
     fontSize: 18,
@@ -271,17 +323,43 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   productQuantity: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#666',
   },
   productDate: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#888',
+    marginTop: 5,
   },
   actionsContainer: {
-    marginTop: 10,
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     width: '100%',
+    marginTop: 10,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    elevation: 10,
+    alignItems: 'center',
+  },
+  modalImage: {
+    width: 200,
+    height: 200,
+    marginBottom: 20,
+    borderRadius: 8,
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 10,
+    color: '#333',
   },
 });
