@@ -16,7 +16,7 @@ export default function Teste1Screen() {
 
   const fetchLatestProduct = async () => {
     try {
-      const response = await axios.get('http://192.168.0.110:3000/produtos');
+      const response = await axios.get('https://crud-aps.onrender.com/produtos');
       if (response.data.length > 0) {
         setProduct(response.data[response.data.length - 1]);
       } else {
@@ -94,11 +94,11 @@ export default function Teste1Screen() {
       }
 
       if (product?._id) {
-        await axios.put(`http://192.168.0.110:3000/produtos/${product._id}`, formData, {
+        await axios.put(`https://crud-aps.onrender.com/produtos/${product._id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       } else {
-        const response = await axios.post('http://192.168.0.110:3000/produtos', formData, {
+        const response = await axios.post('https://crud-aps.onrender.com/produtos', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
         setProduct(response.data);
@@ -125,7 +125,7 @@ export default function Teste1Screen() {
   const handleDelete = async () => {
     try {
       if (product?._id) {
-        await axios.delete(`http://192.168.0.110:3000/produtos/${product._id}`);
+        await axios.delete(`https://crud-aps.onrender.com/produtos/${product._id}`);
         setProduct(null);
       }
     } catch (error) {

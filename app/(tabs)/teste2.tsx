@@ -19,7 +19,7 @@ export default function EditDeleteProductsScreen() {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://192.168.0.110:3000/produtos');
+      const response = await axios.get('https://crud-aps.onrender.com/produtos');
       const filteredProducts = response.data
         .filter((product) => product.quantity === 1)
         .sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
@@ -79,11 +79,11 @@ export default function EditDeleteProductsScreen() {
       }
 
       if (selectedProductId) {
-        await axios.put(`http://192.168.0.110:3000/produtos/${selectedProductId}`, formData, {
+        await axios.put(`https://crud-aps.onrender.com/produtos/${selectedProductId}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       } else {
-        await axios.post('http://192.168.0.110:3000/produtos', formData, {
+        await axios.post('https://crud-aps.onrender.com/produtos', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
@@ -106,7 +106,7 @@ export default function EditDeleteProductsScreen() {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://192.168.0.110:3000/produtos/${id}`);
+      await axios.delete(`https://crud-aps.onrender.com/produtos/${id}`);
       fetchProducts();
     } catch (error) {
       console.error('Erro ao excluir produto:', error);

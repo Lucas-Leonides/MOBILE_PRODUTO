@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Button, View, TextInput, TouchableOpacity, FlatList, Modal } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
+import { Ionicons } from '@expo/vector-icons'; // Importando o ícone do menu
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
@@ -15,19 +16,38 @@ export default function EditDeleteProductsScreen() {
   const [showForm, setShowForm] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [quantityGroups, setQuantityGroups] = useState([]);
+  const [isMenuVisible, setIsMenuVisible] = useState(false); // Controlando a visibilidade do menu
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://192.168.0.110:3000/produtos');
+      const response = await axios.get('https://crud-aps.onrender.com/produtos');
       const sortedProducts = response.data
         .filter((product) => product.quantity)
         .sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+
       setProducts(sortedProducts);
+      groupByQuantity(sortedProducts);
     } catch (error) {
       console.error('Erro ao buscar produtos:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const groupByQuantity = (products) => {
+    const groups = products.reduce((acc, product) => {
+      const quantity = product.quantity;
+      if (!acc[quantity]) {
+        acc[quantity] = [];
+      }
+      acc[quantity].push(product);
+      return acc;
+    }, {});
+
+    setQuantityGroups(Object.keys(groups));
+    setFilteredProducts(products);  // Exibe todos os produtos por padrão
   };
 
   useEffect(() => {
@@ -77,11 +97,11 @@ export default function EditDeleteProductsScreen() {
       }
 
       if (selectedProductId) {
-        await axios.put(`http://192.168.0.110:3000/produtos/${selectedProductId}`, formData, {
+        await axios.put(`https://crud-aps.onrender.com/produtos/${selectedProductId}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       } else {
-        await axios.post('http://192.168.0.110:3000/produtos', formData, {
+        await axios.post('https://crud-aps.onrender.com/produtos', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
@@ -103,7 +123,7 @@ export default function EditDeleteProductsScreen() {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://192.168.0.110:3000/produtos/${id}`);
+      await axios.delete(`https://crud-aps.onrender.com/produtos/${id}`);
       fetchProducts();
     } catch (error) {
       console.error('Erro ao excluir produto:', error);
@@ -136,10 +156,14 @@ export default function EditDeleteProductsScreen() {
           }}
         />
         <Button title="Excluir" onPress={() => handleDelete(item._id)} color="red" />
-       
       </View>
     </View>
   );
+
+  const handleGroupClick = (quantity) => {
+    const filtered = products.filter(product => product.quantity === parseInt(quantity));
+    setFilteredProducts(filtered);
+  };
 
   if (loading) {
     return (
@@ -154,6 +178,33 @@ export default function EditDeleteProductsScreen() {
       <ThemedText type="title" style={styles.title}>
         Gerenciar Produtos
       </ThemedText>
+
+      <TouchableOpacity
+        style={styles.menuButton}
+        onPress={() => setIsMenuVisible(!isMenuVisible)} // Alterna visibilidade do menu
+      >
+        <Ionicons name="menu" size={32} color="#477ed1" />
+      </TouchableOpacity>
+
+      {isMenuVisible && ( // Menu visível apenas quando clicado
+        <View style={styles.headerButtons}>
+          <Button
+            title="Voltar para Todos"
+            onPress={() => setFilteredProducts(products)}
+            color="#4CAF50"
+          />
+          {quantityGroups.map((quantity) => (
+            <Button
+              key={quantity}
+              title={`Lista ${quantity}`}
+              onPress={() => handleGroupClick(quantity)}
+              color="#477ed1"
+            />
+          ))}
+        </View>
+      )}
+
+      <View style={styles.spacer} />
 
       <View style={styles.headerButtons}>
         <Button
@@ -206,7 +257,7 @@ export default function EditDeleteProductsScreen() {
       )}
 
       <FlatList
-        data={products}
+        data={filteredProducts}
         keyExtractor={(item) => item._id}
         renderItem={renderProduct}
         style={styles.list}
@@ -239,6 +290,14 @@ export default function EditDeleteProductsScreen() {
 
 
 const styles = StyleSheet.create({
+  
+  
+  menuButton: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    zIndex: 10,
+  },
   buttonContainer: {
     marginBottom: 20,
   },
