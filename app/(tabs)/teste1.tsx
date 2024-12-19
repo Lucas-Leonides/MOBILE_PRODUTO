@@ -43,8 +43,8 @@ export default function Teste1Screen() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
+      allowsEditing: false,
+      
       quality: 1,
     });
 
@@ -62,8 +62,7 @@ export default function Teste1Screen() {
     }
 
     const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
+      allowsEditing: false,
       quality: 1,
     });
 
@@ -151,7 +150,7 @@ export default function Teste1Screen() {
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="title" style={styles.title}>
-        Gerenciar Produto
+        Adicione de forma geral
       </ThemedText>
 
       <View style={styles.formContainer}>

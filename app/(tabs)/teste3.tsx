@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, Button, View, TextInput, TouchableOpacity, FlatList, Modal } from 'react-native';
+import { Image, StyleSheet, Button, View, TextInput, TouchableOpacity, FlatList, Modal, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import { ThemedText } from '@/components/ThemedText';
@@ -38,8 +38,7 @@ export default function EditDeleteProductsScreen() {
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
+      allowsEditing: false,
       quality: 1,
     });
 
@@ -50,8 +49,7 @@ export default function EditDeleteProductsScreen() {
 
   const handleTakePhoto = async () => {
     const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
+      allowsEditing: false,
       quality: 1,
     });
 
@@ -137,7 +135,7 @@ export default function EditDeleteProductsScreen() {
       <ThemedText style={styles.productName}>{item.name}</ThemedText>
       <ThemedText style={styles.productQuantity}>Quantidade: {item.quantity}</ThemedText>
       <ThemedText style={styles.productDate}>Adicionado em: {formatDate(item.dateAdded)}</ThemedText>
-      <ThemedText style={styles.productDescription}>{item.description}</ThemedText>
+      
       <View style={styles.actionsContainer}>
         <Button title="Editar" onPress={() => { setName(item.name); setDescription(item.description); setSelectedProductId(item._id); setShowForm(true); }} />
         <Button title="Excluir" onPress={() => handleDelete(item._id)} color="red" />
@@ -155,12 +153,16 @@ export default function EditDeleteProductsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title" style={styles.title}>Gerenciar Produtos (Quantidade 2)</ThemedText>
+      <ThemedText type="title" style={styles.title}>Adicione montagem (Quantidade 2)</ThemedText>
 
       <View style={styles.buttonContainer}>
         <Button title="Atualizar Lista" onPress={handleRefresh} color="#477ed1" />
         <View style={styles.spacer} />
-        <Button title={showForm ? "Fechar Formulário" : "Adicionar Novo Produto"} onPress={() => setShowForm(!showForm)} color="#683ba8" />
+        <Button
+                    title={showForm ? "Fechar Formulário" : "Adicionar Novo Produto"}
+                    onPress={() => setShowForm(!showForm)}
+                    color={showForm ? "#eb4034" : "#683ba8"}
+                  />
       </View>
 
       {showForm && (
@@ -216,7 +218,11 @@ export default function EditDeleteProductsScreen() {
             <View style={styles.modalContent}>
               <Image source={{ uri: selectedProduct.imageUrl }} style={styles.modalImage} />
               <ThemedText style={styles.modalText}>Nome: {selectedProduct.name}</ThemedText>
-              <ThemedText style={styles.modalText}>Descrição: {selectedProduct.description}</ThemedText>
+
+              <ScrollView style={styles.descriptionContainer}>
+                <ThemedText style={styles.modalText}>Descrição: {selectedProduct.description}</ThemedText>
+              </ScrollView>
+
               <ThemedText style={styles.modalText}>Quantidade: {selectedProduct.quantity}</ThemedText>
               <ThemedText style={styles.modalText}>Adicionado em: {formatDate(selectedProduct.dateAdded)}</ThemedText>
               <Button title="Fechar" onPress={() => setIsModalVisible(false)} color="#683ba8" />
@@ -352,5 +358,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 10,
     color: '#333',
+  },
+  descriptionContainer: {
+    maxHeight: 200,  // Tamanho fixo do quadrado com rolagem
+    marginBottom: 10,
   },
 });

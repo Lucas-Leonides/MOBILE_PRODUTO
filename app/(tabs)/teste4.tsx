@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, Button, View, TextInput, TouchableOpacity, FlatList, Modal } from 'react-native';
+import { Image, StyleSheet, Button, View, TextInput, TouchableOpacity, FlatList, Modal, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons'; // Importando o ícone do menu
@@ -11,6 +11,7 @@ export default function EditDeleteProductsScreen() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [quantity, setQuantity] = useState(''); // Adicionando estado para a quantidade
   const [image, setImage] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -57,8 +58,8 @@ export default function EditDeleteProductsScreen() {
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
+      allowsEditing: false,
+      
       quality: 1,
     });
 
@@ -69,8 +70,8 @@ export default function EditDeleteProductsScreen() {
 
   const handleTakePhoto = async () => {
     const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
+      allowsEditing: false,
+      
       quality: 1,
     });
 
@@ -84,7 +85,7 @@ export default function EditDeleteProductsScreen() {
       const formData = new FormData();
       formData.append('name', name);
       formData.append('description', description);
-      formData.append('quantity', 2);
+      formData.append('quantity', quantity); // Enviando a quantidade no formulário
 
       if (image) {
         const filename = image.split('/').pop();
@@ -116,6 +117,7 @@ export default function EditDeleteProductsScreen() {
   const resetForm = () => {
     setName('');
     setDescription('');
+    setQuantity(''); // Resetando o valor da quantidade
     setImage(null);
     setSelectedProductId(null);
     setShowForm(false);
@@ -151,6 +153,7 @@ export default function EditDeleteProductsScreen() {
           onPress={() => {
             setName(item.name);
             setDescription(item.description);
+            setQuantity(item.quantity.toString()); // Preenchendo o campo de quantidade com o valor atual
             setSelectedProductId(item._id);
             setShowForm(true);
           }}
@@ -176,7 +179,7 @@ export default function EditDeleteProductsScreen() {
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="title" style={styles.title}>
-        Gerenciar Produtos
+        Edição geral
       </ThemedText>
 
       <TouchableOpacity
@@ -208,9 +211,9 @@ export default function EditDeleteProductsScreen() {
 
       <View style={styles.headerButtons}>
         <Button
-          title={showForm ? 'Fechar Formulário' : 'Adicionar Produto'}
+          title={showForm ? "Fechar Formulário" : "Adicionar Novo Produto"}
           onPress={() => setShowForm(!showForm)}
-          color="#477ed1"
+          color={showForm ? "#eb4034" : "#683ba8"}
         />
         <View style={styles.spacer} />
         <Button
@@ -233,6 +236,13 @@ export default function EditDeleteProductsScreen() {
             placeholder="Descrição"
             value={description}
             onChangeText={setDescription}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Quantidade"
+            keyboardType="numeric"
+            value={quantity}
+            onChangeText={setQuantity} // Adicionando o campo de quantidade
           />
           <TouchableOpacity style={styles.imagePicker} onPress={handlePickImage}>
             <ThemedText style={styles.imagePickerText}>
@@ -274,12 +284,21 @@ export default function EditDeleteProductsScreen() {
             <View style={styles.modalContent}>
               <Image source={{ uri: selectedProduct.imageUrl }} style={styles.modalImage} />
               <ThemedText style={styles.modalText}>Nome: {selectedProduct.name}</ThemedText>
-              <ThemedText style={styles.modalText}>Descrição: {selectedProduct.description}</ThemedText>
+
+              {/* ScrollView para a descrição */}
+              <ScrollView style={styles.scrollView}>
+                <ThemedText style={styles.modalText}>Descrição: {selectedProduct.description}</ThemedText>
+              </ScrollView>
+
               <ThemedText style={styles.modalText}>Quantidade: {selectedProduct.quantity}</ThemedText>
               <ThemedText style={styles.modalText}>
                 Adicionado em: {new Date(selectedProduct.dateAdded).toLocaleString()}
               </ThemedText>
-              <Button title="Fechar" onPress={() => setModalVisible(false)} color="#683ba8" />
+
+              {/* Botão de fechar com posição fixa */}
+              <View style={styles.closeButtonContainer}>
+                <Button title="Fechar" onPress={() => setModalVisible(false)} color="#683ba8" />
+              </View>
             </View>
           </View>
         </Modal>
@@ -287,11 +306,19 @@ export default function EditDeleteProductsScreen() {
     </ThemedView>
   );
 }
-
-
 const styles = StyleSheet.create({
   
-  
+  scrollView: {
+    maxHeight: 200,  // Defina um tamanho máximo para a área rolável
+    marginBottom: 40, // Espaço entre a descrição e o botão
+  },
+  closeButtonContainer: {
+    position: 'absolute',
+    bottom: -20, // Ajuste para garantir que o botão fique abaixo do conteúdo
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
   menuButton: {
     position: 'absolute',
     top: 40,

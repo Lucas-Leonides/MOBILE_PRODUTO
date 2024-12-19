@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, Button, View, TextInput, TouchableOpacity, FlatList, Modal } from 'react-native';
+import { Image, StyleSheet, Button, View, TextInput, TouchableOpacity, FlatList, Modal, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import { ThemedText } from '@/components/ThemedText';
@@ -38,8 +38,7 @@ export default function EditDeleteProductsScreen() {
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
+      allowsEditing: false,
       quality: 1,
     });
 
@@ -50,8 +49,7 @@ export default function EditDeleteProductsScreen() {
 
   const handleTakePhoto = async () => {
     const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
+      allowsEditing: false,
       quality: 1,
     });
 
@@ -152,12 +150,16 @@ export default function EditDeleteProductsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title" style={styles.title}>Gerenciar Produtos (Quantidade 1)</ThemedText>
+      <ThemedText type="title" style={styles.title}>Adicione eletrônica (Quantidade 1)</ThemedText>
 
       <View style={styles.buttonContainer}>
         <Button title="Atualizar Página" onPress={handleRefresh} color="#477ed1" />
         <View style={styles.spacer} />
-        <Button title={showForm ? "Fechar Formulário" : "Adicionar Novo Produto"} onPress={() => setShowForm(!showForm)} color="#683ba8" />
+        <Button
+                    title={showForm ? "Fechar Formulário" : "Adicionar Novo Produto"}
+                    onPress={() => setShowForm(!showForm)}
+                    color={showForm ? "#eb4034" : "#683ba8"}
+                  />
       </View>
 
       {showForm && (
@@ -213,9 +215,16 @@ export default function EditDeleteProductsScreen() {
             <View style={styles.modalContent}>
               <Image source={{ uri: selectedProduct.imageUrl }} style={styles.modalImage} />
               <ThemedText style={styles.modalText}>Nome: {selectedProduct.name}</ThemedText>
-              <ThemedText style={styles.modalText}>Descrição: {selectedProduct.description}</ThemedText>
               <ThemedText style={styles.modalText}>Quantidade: {selectedProduct.quantity}</ThemedText>
               <ThemedText style={styles.modalText}>Adicionado em: {formatDate(selectedProduct.dateAdded)}</ThemedText>
+
+              {/* Descrição rolável */}
+              <View style={styles.descriptionContainer}>
+                <ScrollView contentContainerStyle={styles.descriptionScroll}>
+                  <ThemedText style={styles.modalText}>Descrição: {selectedProduct.description}</ThemedText>
+                </ScrollView>
+              </View>
+
               <Button title="Fechar" onPress={() => setIsModalVisible(false)} color="#683ba8" />
             </View>
           </View>
@@ -348,5 +357,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 10,
     color: '#333',
+  },
+  descriptionContainer: {
+    width: '100%',
+    height: 150, // Define a altura fixa para o quadrado
+    overflow: 'hidden',
+    marginBottom: 20,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+  },
+  descriptionScroll: {
+    padding: 10,
   },
 });
